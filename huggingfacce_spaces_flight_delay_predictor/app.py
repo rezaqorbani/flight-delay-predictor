@@ -31,10 +31,49 @@ class NeuralNetwork(nn.Module):
         return x
 
 mr = project.get_model_registry()
-model = mr.get_model("fligt_delay_model", version=2)
+model = mr.get_model("flight_delay_model", version=1)
 model_dir = model.download()
 model = joblib.load(model_dir + "/flight_delay_model.pkl")
 
+wac_map = {
+    "BOS": 13,
+    "CLT": 36,
+    "DEN": 82,
+    "DTW": 43,
+    "EWR": 21,
+    "FLL": 33,
+    "IAD": 38,
+    "IAH": 74,
+    "JFK": 22,
+    "LAS": 85,
+    "LAX": 91,
+    "MCO": 33,
+    "MIA": 33,
+    "ORD": 41,
+    "PHL": 23,
+    "SEA": 93,
+    "SFO": 91,
+    "ATL": 34,
+}
+airport_id_map={
+    "CLT": 11057,
+    "DEN": 11292,
+    "DTW": 11433,
+    "EWR": 11618,
+    "FLL": 11697,
+    "IAD": 12264,
+    "IAH": 12266,
+    "JFK": 12478,
+    "LAS": 12889,
+    "LAX": 12892,
+    "MCO": 13204,
+    "MIA": 13303,
+    "ORD": 13930,
+    "PHL": 14100,
+    "SEA": 14747,
+    "SFO": 14771,
+    "ATL": 10397,
+}
 # Function to fetch weather data from an API
 def get_weather_data(airport_code):
     # Make API call to fetch weather data for the airport
@@ -43,6 +82,7 @@ def get_weather_data(airport_code):
 
 # Function to fetch flight data from an API
 def get_flight_data(origin, destination, date):
+
     # Make API call to fetch flight data based on origin, destination
     # Process and return flight data
     # We can get most data from user input airport codes. Mainly need CRS arr and CRS dep time
