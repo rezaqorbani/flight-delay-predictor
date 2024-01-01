@@ -272,7 +272,7 @@ weather_delay_data["CRS_ARR_TIME"] = weather_delay_data["CRS_ARR_TIME"].apply(
 
 # add year, quarter, month, day_of_month, day_of_week
 weather_delay_data["YEAR"] = weather_delay_data["FL_DATE"].dt.year
-weather_delay_data["QUARTER"] = weather_delay_data["FL_DATE"].dt.quarter
+#weather_delay_data["QUARTER"] = weather_delay_data["FL_DATE"].dt.quarter
 weather_delay_data["MONTH"] = weather_delay_data["FL_DATE"].dt.month
 weather_delay_data["DAY_OF_MONTH"] = weather_delay_data["FL_DATE"].dt.day
 weather_delay_data["DAY_OF_WEEK"] = weather_delay_data["FL_DATE"].dt.dayofweek
