@@ -182,6 +182,7 @@ pressure_data = pd.DataFrame(pressure_data)
 endpoint = "http://api.aviationstack.com/v1/flights"
 flight_data = []
 
+
 for i in range(len(selected_airports_iata)):
     print(f"Getting flights for {selected_airports_iata[i]}")
     # Parameters for the API request
@@ -192,7 +193,7 @@ for i in range(len(selected_airports_iata)):
             i
         ],  # Replace 'SFO' with your desired airport code
         "arr_iata": selected_airports_iata[rand_int],
-        "flight_status": ["active"]
+        "flight_status": ["active"],
     }
 
     # Making the GET request
@@ -204,7 +205,7 @@ for i in range(len(selected_airports_iata)):
         data = {"airport": selected_airports_iata[i]}
         if len(response["data"]) == 0:
             continue
-        
+
         rand_int = random.randint(0, len(response["data"]) - 1)
 
         response = response["data"][rand_int]
@@ -220,6 +221,7 @@ for i in range(len(selected_airports_iata)):
         data["CRS_ARR_TIME"] = response["arrival"]["scheduled"]
         flight_data.append(data)
     else:
+        print(response.json())
         print("Request failed:", response.status_code)
 
 flight_data = pd.DataFrame(flight_data)
@@ -272,16 +274,82 @@ weather_delay_data["CRS_ARR_TIME"] = weather_delay_data["CRS_ARR_TIME"].apply(
 
 # add year, quarter, month, day_of_month, day_of_week
 weather_delay_data["YEAR"] = weather_delay_data["FL_DATE"].dt.year
-#weather_delay_data["QUARTER"] = weather_delay_data["FL_DATE"].dt.quarter
+# weather_delay_data["QUARTER"] = weather_delay_data["FL_DATE"].dt.quarter
 weather_delay_data["MONTH"] = weather_delay_data["FL_DATE"].dt.month
 weather_delay_data["DAY_OF_MONTH"] = weather_delay_data["FL_DATE"].dt.day
 weather_delay_data["DAY_OF_WEEK"] = weather_delay_data["FL_DATE"].dt.dayofweek
 
 
 # %%
-msno.matrix(weather_delay_data)
-
-# %%
 # remove rows with missing values
 weather_delay_data = weather_delay_data.dropna()
-msno.matrix(weather_delay_data)
+
+# %%
+airport_id_map = {
+    "CLT": 11057,
+    "DEN": 11292,
+    "DTW": 11433,
+    "EWR": 11618,
+    "FLL": 11697,
+    "IAD": 12264,
+    "IAH": 12266,
+    "JFK": 12478,
+    "LAS": 12889,
+    "LAX": 12892,
+    "MCO": 13204,
+    "MIA": 13303,
+    "ORD": 13930,
+    "PHL": 14100,
+    "SEA": 14747,
+    "SFO": 14771,
+    "ATL": 10397,
+}
+
+# Mapping IATA codes to airport IDs for 'dest' and 'origin' columns
+weather_delay_data["dest_airport_id"] = weather_delay_data["DEST"].map(airport_id_map)
+weather_delay_data["origin_airport_id"] = weather_delay_data["ORIGIN"].map(
+    airport_id_map
+)
+
+
+weather_delay_data.drop(
+    columns=["DEST", "ORIGIN", "FL_DATE", "DEPARTURE_DATETIME"], inplace=True
+)
+
+
+# %%
+columns_to_int64 = [
+    "CRS_ARR_TIME",
+    "CRS_DEP_TIME",
+    "YEAR",
+    "MONTH",
+    "DAY_OF_MONTH",
+    "DAY_OF_WEEK",
+]
+columns_to_float64 = [
+    "HourlyPrecipitation",
+    "HourlyVisibility",
+    "HourlyWindGustSpeed",
+    "HourlyWindSpeed",
+    "DEP_DELAY_NEW",
+]
+
+for column in columns_to_int64:
+    # Convert to int64
+    weather_delay_data[column] = weather_delay_data[column].astype("int64")
+for column in columns_to_float64:
+    # Convert to int64
+    weather_delay_data[column] = weather_delay_data[column].astype("float64")
+
+
+# %% [markdown]
+# ### Insert into hopswork dataset
+
+# %%
+import hopsworks
+
+project = hopsworks.login()
+fs = project.get_feature_store()
+
+flight_delay_fg = fs.get_feature_group(name="flight_data_v2", version=1)
+flight_delay_fg.insert(weather_delay_data)
