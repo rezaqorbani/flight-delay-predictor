@@ -303,6 +303,9 @@ def predict_delay(origin, destination,scheduled_dep_time, scheduled_arr_time):
     destination=destination.split()[0]
     
     #error handling
+    if origin == destination:
+        return "Error: Origin and destination airports cannot be the same. Please select different airports."
+    
     try:
         # check if correct hour format by trying to convert to datetime objects
         datetime.strptime(scheduled_dep_time, "%H:%M")
@@ -310,8 +313,6 @@ def predict_delay(origin, destination,scheduled_dep_time, scheduled_arr_time):
     except ValueError:
         # else error
         return "Error: Please enter scheduled departure and arrival times in 24-hour format (HH:MM)."
-    if origin == destination:
-        return "Error: Origin and destination airports cannot be the same. Please select different airports."
     
     #Get data from APIs
     selected_airports_iata = [origin,destination]
@@ -340,14 +341,11 @@ def predict_delay(origin, destination,scheduled_dep_time, scheduled_arr_time):
     #flight_weather_data.info()
 
     flight_weather_data=torch.tensor(flight_weather_data.values, dtype=torch.float32)
-    print(flight_weather_data)
     #flight_weather_data=scaler.transform(flight_weather_data.reshape(1, -1))
     flight_weather_data=scaler.transform(flight_weather_data)
 
-    print(flight_weather_data)
     # transform np array to torch tensor
     flight_weather_data_tensor=torch.tensor(flight_weather_data, dtype=torch.float32)
-    print(flight_weather_data_tensor)
 
     output=model(flight_weather_data_tensor)
     #return output
