@@ -88,7 +88,7 @@ weather_features = [
     ("wind_gust", "value"),
     ("wind_speed", "value"),
 ]
-pressure_features = [("pressure", "hg")]
+pressure_features = [("pressure", "hpa")]
 flight_features = [
     "flight_date",
     ("departure", "iata"),
@@ -245,7 +245,7 @@ def get_pressure_data(selected_airports_iata):
     for airport in selected_airports_iata:
         response_json = responses[airport]
         data = {"airport": airport}
-        data["HourlyStationPressure"] = response_json["data"][0]["barometer"]["hg"]
+        data["HourlyStationPressure"] = response_json["data"][0]["barometer"]["hpa"]
         pressure_data.append(data)
 
     pressure_data = pd.DataFrame(pressure_data)
