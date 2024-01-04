@@ -17,10 +17,7 @@ import json
 from urllib.request import Request, urlopen
 import random
 from datetime import datetime
-import missingno as msno
 from sklearn.preprocessing import StandardScaler
-
-
 
 
 
@@ -35,6 +32,7 @@ load_dotenv()
 weather_api_key = os.getenv("weather_api_key")
 pressure_api_key = os.getenv("pressure_api_key")
 flight_api_key = os.getenv("flight_api_key")
+
 
 # %%
 #Mappings
@@ -117,7 +115,8 @@ airport_id_map={
     "SFO": 14771,
     "ATL": 10397,
 }
-
+label_tranformed_airport_id_map={'ATL': 0, 'CLT': 1, 'DEN': 2, 'DTW': 3, 'EWR': 4, 'FLL': 5, 'IAD': 6, 'IAH': 7, 'JFK': 8,
+                                  'LAS': 9, 'LAX': 10, 'MCO': 11, 'MIA': 12, 'ORD': 13, 'PHL': 14, 'SEA': 15, 'SFO': 16}
 # Create predefined lists for origin and destination airport codes
 airports = [ "PHL - PHILADELPHIA INTERNATIONAL AIRPORT, PA US",
     "SEA - SEATTLE TACOMA AIRPORT, WA US",
@@ -161,19 +160,21 @@ class NeuralNetwork(nn.Module):
 
 #Load model from model registry
 mr = project.get_model_registry()
-model = mr.get_model("flight_delay_model", version=1)
+model = mr.get_model("flight_delay_model", version=2)
 model_dir = model.download()
 model = joblib.load(model_dir + "/flight_delay_model.pkl")
 
 # get the original train test splits used for training the model and use it for fitting scaler
-feature_view = fs.get_feature_view(name="flight_data_v2",version=1)
-X_train, X_test, y_train, y_test = feature_view.get_train_test_split(training_dataset_version=8)
+feature_view = fs.get_feature_view(name="flight_data_v3",version=1)
+X_train, X_test, y_train, y_test = feature_view.get_train_test_split(training_dataset_version=3)
 
 #fit scaler the same way it was used for training
 scaler = StandardScaler()
 X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
 X_train_scaled = scaler.fit_transform(X_train_tensor)
 X_train_tensor = torch.tensor(X_train_scaled, dtype=torch.float32)
+
+results = pd.DataFrame(columns=["Origin Airport", "Destination Airport", "Scheduled Departure", "Scheduled Arrival", "Predicted Departure Delay"])
 
 
 # %%
@@ -267,14 +268,14 @@ def get_flight_data(origin, destination,scheduled_dep_time, scheduled_arr_time):
 
 
     origin_wac = wac_map[origin]
-    origin_airport_id = airport_id_map[origin]
+    origin_airport_id = label_tranformed_airport_id_map[origin]
 
     # Mapping destination to dest_WAC and dest_airport_id
     dest_wac = wac_map[destination]
-    dest_airport_id = airport_id_map[destination]
+    dest_airport_id = label_tranformed_airport_id_map[destination]
     # Create a DataFrame for the given airport codes
     airport_df = pd.DataFrame({
-        "Year":[year],
+        #"Year":[year],
         "month":[month],
         "Day_of_month":[day_of_month],
         "Day_of_week":[day_of_week],
@@ -303,9 +304,6 @@ def predict_delay(origin, destination,scheduled_dep_time, scheduled_arr_time):
     destination=destination.split()[0]
     
     #error handling
-    if origin == destination:
-        return "Error: Origin and destination airports cannot be the same. Please select different airports."
-    
     try:
         # check if correct hour format by trying to convert to datetime objects
         datetime.strptime(scheduled_dep_time, "%H:%M")
@@ -313,6 +311,8 @@ def predict_delay(origin, destination,scheduled_dep_time, scheduled_arr_time):
     except ValueError:
         # else error
         return "Error: Please enter scheduled departure and arrival times in 24-hour format (HH:MM)."
+    if origin == destination:
+        return "Error: Origin and destination airports cannot be the same. Please select different airports."
     
     #Get data from APIs
     selected_airports_iata = [origin,destination]
@@ -341,20 +341,71 @@ def predict_delay(origin, destination,scheduled_dep_time, scheduled_arr_time):
     #flight_weather_data.info()
 
     flight_weather_data=torch.tensor(flight_weather_data.values, dtype=torch.float32)
+    print(flight_weather_data)
     #flight_weather_data=scaler.transform(flight_weather_data.reshape(1, -1))
     flight_weather_data=scaler.transform(flight_weather_data)
 
+    print(flight_weather_data)
     # transform np array to torch tensor
     flight_weather_data_tensor=torch.tensor(flight_weather_data, dtype=torch.float32)
+    print(flight_weather_data_tensor)
 
     output=model(flight_weather_data_tensor)
-    #return output
-    return "Predicted delay for {} to {} with the scheduled departure time {} and scheduled " \
-        "arrival time {} is {} minutes".format(origin, destination, scheduled_dep_time, scheduled_arr_time,int(output.item()))
+    """
+    return_dict = {
+        'Origin Airport': origin,
+        'Destination Airport': destination,
+        'Scheduled Departure': scheduled_dep_time,
+        'Scheduled Arrival': scheduled_arr_time,
+        'Predicted Departure Delay': int(output.item()) 
+    }
+
+
+    # Convert the dictionary to a Pandas DataFrame
+    df = pd.DataFrame([return_dict])
+    return df
+    """
+    global results
+    new_prediction = {
+        'Origin Airport': origin,
+        'Destination Airport': destination,
+        'Scheduled Departure': scheduled_dep_time,
+        'Scheduled Arrival': scheduled_arr_time,
+        'Predicted Departure Delay': int(output.item())  
+    }
+    # Append the new prediction to the existing DataFrame
+    results = pd.concat([results, pd.DataFrame([new_prediction])])
+
+    return results
+    #return "Predicted delay for {} to {} with the scheduled departure time {} and scheduled " \
+    #    "arrival time {} is {} minutes".format(origin, destination, scheduled_dep_time, scheduled_arr_time,int(output.item()))
 
 
 # %%
 # Create Gradio interface with dropdowns for airport selection
+with gr.Blocks() as demo:
+    gr.Markdown("# Flight departure delay predictor using Flight data and Weather Data")
+    gr.Markdown("Input origin airport and destination airport from the dropdown boxes. Also input the scheduled departure time and scheduled arrival time")
+    gr.Markdown("The scheduled departure time should be within one hour from now since live weather data for the airports will be fetched")
+    
+    with gr.Row():
+        output = gr.Dataframe(headers=["Origin Airport", "Destination Airport", "Scheduled Departure", "Scheduled Arrival", "Predicted Departure Delay"],
+                                    row_count=3,col_count=5,type="pandas",label="Predicted Departure Delay")
+    with gr.Column():
+        origin_dropdown = gr.Dropdown(choices=airports, label="Origin Airport")
+        destination_dropdown = gr.Dropdown(choices=airports, label="Destination Airport")
+        scheduled_dep_time_text = gr.Textbox(type="text", label="Enter scheduled Departure time in 24-hour format HH:MM(eg. 17:59)")
+        scheduled_arr_time_text = gr.Textbox(type="text", label="Enter scheduled Arrival time in 24-hour format HH:MM (eg. 20:59)")
+
+    with gr.Row():
+        submit_button = gr.Button("Predict Departure Delay")
+    
+    
+        
+    submit_button.click(predict_delay, inputs=[origin_dropdown, destination_dropdown, scheduled_dep_time_text, scheduled_arr_time_text], outputs=output)
+
+demo.launch()
+"""
 iface = gr.Interface(
     fn=predict_delay,
     inputs=[
@@ -363,9 +414,21 @@ iface = gr.Interface(
         gr.inputs.Textbox(type="text", label="Enter scheduled Departure time in 24-hour format HH:MM(eg. 17:59)"),
         gr.inputs.Textbox(type="text", label="Enter scheduled Arrival time in 24-hour format HH:MM (eg. 20:59)"),
     ],
-    outputs=gr.outputs.Textbox(label="Predicted Departure Delay")
+    outputs=gr.outputs.Dataframe(headers=["origin airport", "destination airport", "scheduled departure time","scheduled arrival time","predicted departure delay"],
+                                type="pandas",label="Predicted Departure Delay"),
+    #outputs=gr.outputs.Textbox(label="Predicted Departure Delay"),
+    layout="vertical"
 )
 
 # Launch the Gradio app
 iface.launch()
+
+
+with gr.Row():
+        origin_dropdown = gr.Dropdown(choices=airports, label="Origin Airport")
+        destination_dropdown = gr.Dropdown(choices=airports, label="Destination Airport")
+        scheduled_dep_time_text = gr.Textbox(type="text", label="Enter scheduled Departure time in 24-hour format HH:MM(eg. 17:59)")
+        scheduled_arr_time_text = gr.Textbox(type="text", label="Enter scheduled Arrival time in 24-hour format HH:MM (eg. 20:59)")
+"""
+
 

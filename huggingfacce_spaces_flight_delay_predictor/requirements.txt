@@ -1,7 +1,6 @@
 hopsworks
 joblib
-gradio==3.14
-seaborn
+gradio
 httpx==0.24.1
 torch
 pandas
