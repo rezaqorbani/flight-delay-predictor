@@ -107,7 +107,7 @@ data = {
 }
 
 monitor_df = pd.DataFrame(data)
-monitor_fg.insert(monitor_df, write_options={"wait_for_job": False}) # set this to True if you want to run it faster (async) but you will not be able to run the next cell
+monitor_fg.insert(monitor_df, write_options={"wait_for_job": True}) # set this to True if you want to run it faster (async) but you will not be able to run the next cell
 
 # %% [markdown]
 # ## Add to history
