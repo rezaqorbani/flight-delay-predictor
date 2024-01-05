@@ -50,7 +50,7 @@ feature_view = fs.get_feature_view(name="flight_data_v3")
 
 # %%
 # fit the scaler
-X_train, X_test, y_train, y_test = feature_view.get_train_test_split(training_dataset_version=1)
+X_train, X_test, y_train, y_test = feature_view.get_train_test_split(training_dataset_version=3)
 scaler = StandardScaler()
 X_train_tensor = torch.tensor(X_train.values, dtype=torch.float32)
 X_train_scaled = scaler.fit_transform(X_train_tensor)
