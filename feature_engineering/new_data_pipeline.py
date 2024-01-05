@@ -14,6 +14,7 @@ import random
 import datetime
 import missingno as msno
 from sklearn.preprocessing import LabelEncoder
+
 load_dotenv()
 weather_api_key = os.getenv("weather_api_key")
 pressure_api_key = os.getenv("pressure_api_key")
@@ -102,15 +103,34 @@ flight_features = [
     ("arrival", "delay"),
     ("arrival", "scheduled"),
 ]
-previous_mapping = {'ATL': 0, 'CLT': 1, 'DEN': 2, 'DTW': 3, 'EWR': 4, 'FLL': 5, 'IAD': 6, 'IAH': 7, 'JFK': 8,
-                    'LAS': 9, 'LAX': 10, 'MCO': 11, 'MIA': 12, 'ORD': 13, 'PHL': 14, 'SEA': 15, 'SFO': 16}
+previous_mapping = {
+    "ATL": 0,
+    "CLT": 1,
+    "DEN": 2,
+    "DTW": 3,
+    "EWR": 4,
+    "FLL": 5,
+    "IAD": 6,
+    "IAH": 7,
+    "JFK": 8,
+    "LAS": 9,
+    "LAX": 10,
+    "MCO": 11,
+    "MIA": 12,
+    "ORD": 13,
+    "PHL": 14,
+    "SEA": 15,
+    "SFO": 16,
+}
 
 # Create a label encoder
 label_encoder = LabelEncoder()
 
 # Fit the label encoder with the previous mappings
 label_encoder.fit(list(previous_mapping.keys()))
-airport_encoding_map = dict(zip(label_encoder.classes_, label_encoder.transform(label_encoder.classes_)))
+airport_encoding_map = dict(
+    zip(label_encoder.classes_, label_encoder.transform(label_encoder.classes_))
+)
 print(airport_encoding_map)
 # %% [markdown]
 # ## Weather data (no pressure data)
@@ -318,9 +338,11 @@ airport_id_map = {
 }
 
 # Mapping IATA codes to airport IDs for 'dest' and 'origin' columns
-weather_delay_data["dest_airport_id"] = weather_delay_data["DEST"].map(airport_id_map)
+weather_delay_data["dest_airport_id"] = weather_delay_data["DEST"].map(
+    airport_encoding_map
+)
 weather_delay_data["origin_airport_id"] = weather_delay_data["ORIGIN"].map(
-    airport_id_map
+    airport_encoding_map
 )
 
 
