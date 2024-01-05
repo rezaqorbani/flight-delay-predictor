@@ -246,6 +246,9 @@ weather_delay_data = pd.merge(weather_delay_data, pressure_data, on="airport")
 # ## Transformation
 
 # %%
+# drop rows with missing values
+weather_delay_data = weather_delay_data.dropna()
+
 # drop airport column
 weather_delay_data = weather_delay_data.drop(columns=["airport"])
 
@@ -262,6 +265,11 @@ weather_delay_data["FL_DATE"] = pd.to_datetime(weather_delay_data["FL_DATE"])
 weather_delay_data["DEPARTURE_DATETIME"] = pd.to_datetime(
     weather_delay_data["DEPARTURE_DATETIME"]
 )
+
+# Transform hourly wind direction to int
+weather_delay_data["HourlyWindDirection"] = weather_delay_data[
+    "HourlyWindDirection"
+].astype(int)
 
 weather_delay_data["CRS_DEP_TIME"] = pd.to_datetime(
     weather_delay_data["DEPARTURE_DATETIME"]
@@ -282,16 +290,11 @@ weather_delay_data["CRS_ARR_TIME"] = weather_delay_data["CRS_ARR_TIME"].apply(
 )
 
 # add year, quarter, month, day_of_month, day_of_week
-weather_delay_data["YEAR"] = weather_delay_data["FL_DATE"].dt.year
+# weather_delay_data["YEAR"] = weather_delay_data["FL_DATE"].dt.year
 # weather_delay_data["QUARTER"] = weather_delay_data["FL_DATE"].dt.quarter
 weather_delay_data["MONTH"] = weather_delay_data["FL_DATE"].dt.month
 weather_delay_data["DAY_OF_MONTH"] = weather_delay_data["FL_DATE"].dt.day
 weather_delay_data["DAY_OF_WEEK"] = weather_delay_data["FL_DATE"].dt.dayofweek
-
-
-# %%
-# remove rows with missing values
-weather_delay_data = weather_delay_data.dropna()
 
 # %%
 airport_id_map = {
@@ -326,11 +329,10 @@ weather_delay_data.drop(
 )
 
 
-# %%
 columns_to_int64 = [
     "CRS_ARR_TIME",
     "CRS_DEP_TIME",
-    "YEAR",
+    # "YEAR",
     "MONTH",
     "DAY_OF_MONTH",
     "DAY_OF_WEEK",
@@ -350,7 +352,6 @@ for column in columns_to_float64:
     # Convert to int64
     weather_delay_data[column] = weather_delay_data[column].astype("float64")
 
-
 # %% [markdown]
 # ### Insert into hopswork dataset
 
@@ -360,5 +361,7 @@ import hopsworks
 project = hopsworks.login()
 fs = project.get_feature_store()
 
-flight_delay_fg = fs.get_feature_group(name="flight_data_v2", version=1)
+flight_delay_fg = fs.get_feature_group(name="flight_data_v3", version=1)
 flight_delay_fg.insert(weather_delay_data)
+
+# %%
