@@ -3,7 +3,6 @@
 
 # %%
 import os
-from dotenv import load_dotenv
 import httpx
 import pandas as pd
 import requests
@@ -12,13 +11,11 @@ import json
 from urllib.request import Request, urlopen
 import random
 import datetime
-import missingno as msno
 from sklearn.preprocessing import LabelEncoder
-
-load_dotenv()
-weather_api_key = os.getenv("weather_api_key")
-pressure_api_key = os.getenv("pressure_api_key")
-flight_api_key = os.getenv("flight_api_key")
+hopsworks_api_key=os.getenv("HOPSWORKS_API_KEY")
+weather_api_key = os.getenv("WEATHER_API_KEY")
+pressure_api_key = os.getenv("PRESSURE_API_KEY")
+flight_api_key = os.getenv("FLIGHT_API_KEY")
 
 # %% [markdown]
 # ## Variables and Maps
@@ -93,7 +90,7 @@ weather_features = [
     ("wind_gust", "value"),
     ("wind_speed", "value"),
 ]
-pressure_features = [("pressure", "hg")]
+pressure_features = [("pressure", "hpa")]
 flight_features = [
     "flight_date",
     ("departure", "iata"),
@@ -175,7 +172,7 @@ for airport in selected_airports_iata:
     weather_data.append(data)
 
 weather_data = pd.DataFrame(weather_data)
-
+print(weather_data)
 # %% [markdown]
 # ## Barometric pressure data
 
@@ -199,10 +196,11 @@ pressure_data = []
 for airport in selected_airports_iata:
     response_json = responses[airport]
     data = {"airport": airport}
-    data["HourlyStationPressure"] = response_json["data"][0]["barometer"]["hg"]
+    data["HourlyStationPressure"] = response_json["data"][0]["barometer"]["hpa"]
     pressure_data.append(data)
 
 pressure_data = pd.DataFrame(pressure_data)
+print(pressure_data)
 
 # %% [markdown]
 # ## Flight data
