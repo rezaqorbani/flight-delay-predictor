@@ -21,6 +21,8 @@
 
 This is a serveless service for predicting the delay (in minutes) of any arriving or departing flight in any of top 18 busiest airports (listed in [Airports](#airports) section) in US. Our model is trained on historical flight and weather data from 2021 and 2022 but uses real-time weather data during inference. Using GitHub actions we schedule a run of data pipeline to add fresh data to our training dataset as well as monitor the performance of our model on the latest data. The model can be trained on-demand. There are seperate serverless UI for inference and monitoring. [Hopsworks](https://www.hopsworks.ai/) is used to store extracted features as well the trained model.
 
+[MONITORING UI](https://huggingface.co/spaces/rezaqorbani/flight_delay_monitor)
+
 ## Data
 
 ### Flight data
@@ -40,6 +42,7 @@ For the new weather data we use two different APIs. The first one is [CheckWX](h
 The raw flight and weather data are preprocessed in [preprocessing_flight_data.ipynb](./feature_engineering/preprocessing_flight_data.ipynb) and [weather_data_preprocessing.ipynb](./feature_engineering/weather_data_preprocessing.ipynb) respectively. The preprocessed data is then used to extract features in [feature_engineering.ipynb](./feature_engineering/feature_engineering.ipynb). The extracted features are stored in Hopsworks and are used for training the model. For flight data we extract basic features about flight time/date and delay. For weather data we extract a diverse set of features about temperature, wind, visibility, pressure, etc. We had to perform a lot of manual feature engineering and data wrangling to extract these features as the raw data was not in a very clean format. The extracted features and the preprocessing steps are described in detail in the notebooks mentioned above.
 
 In order to create our final dataset for training the model, we join the extracted flight and weather features on the flight date and airport code. We also add a few more features to this dataset. The final dataset contains approximately 1.7 million rows and 19 features.
+The dataset is stored in Hopsworks where we can easily access it for training the model or performing inference.
 
 ## Model
 
@@ -49,30 +52,32 @@ In order to create our final dataset for training the model, we join the extract
 
 ### Batch inference
 
-The [monitoring](./monitoring/monitoring.py) job performs batch inference where a batch of 15 most recent data points are fetched from the database and the model is used to predict the delay for each data point. We take 15 most recent data because on average our new data pipeline adds 15 new data points to the database every time it is run.
+The [monitoring](./monitoring/monitoring.py) job performs batch inference where a batch of 15 most recent data points are fetched from the database and the model is used to predict the delay for each data point. The data is retrieved from Hopsworks. We take 15 most recent data because on average our new data pipeline adds 15 new data points to the database every time it is run.
 
 ## Montioring
+
+For monitoring we simply show previous prediction of our model and calculated MSE. For each new prediction, we calculate the MSE of the 15 last predictions and show it. This way we get a better picture of how MSE is evolving as new data comes in. The [monitoring](./monitoring/monitoring.py) job is scheduled to run every day at 21:00 UTC. The monitoring data is also stored in Hopsworks.
 
 ## Appendix
 
 ### Airports
 
-| IATA Code | Airport Name                                          | City               |
-|-----------|-------------------------------------------------------|--------------------|
-| ATL       | Hartsfield–Jackson Atlanta International Airport     | Atlanta            |
-| CLT       | Charlotte Douglas International Airport              | Charlotte          |
-| DEN       | Denver International Airport                          | Denver             |
-| DTW       | Detroit Metropolitan Wayne County Airport             | Detroit            |
-| EWR       | Newark Liberty International Airport                  | Newark             |
-| FLL       | Fort Lauderdale–Hollywood International Airport      | Fort Lauderdale    |
-| IAD       | Washington Dulles International Airport               | Dulles             |
-| IAH       | George Bush Intercontinental Airport                  | Houston            |
-| JFK       | John F. Kennedy International Airport                 | New York           |
-| LAS       | McCarran International Airport                        | Las Vegas          |
-| LAX       | Los Angeles International Airport                     | Los Angeles        |
-| MCO       | Orlando International Airport                         | Orlando            |
-| MIA       | Miami International Airport                           | Miami              |
-| ORD       | O'Hare International Airport                          | Chicago            |
-| PHL       | Philadelphia International Airport                    | Philadelphia       |
-| SEA       | Seattle-Tacoma International Airport                  | Seattle            |
-| SFO       | San Francisco International Airport                   | San Francisco      |
+| IATA Code | Airport Name                                     | City            |
+| --------- | ------------------------------------------------ | --------------- |
+| ATL       | Hartsfield–Jackson Atlanta International Airport | Atlanta         |
+| CLT       | Charlotte Douglas International Airport          | Charlotte       |
+| DEN       | Denver International Airport                     | Denver          |
+| DTW       | Detroit Metropolitan Wayne County Airport        | Detroit         |
+| EWR       | Newark Liberty International Airport             | Newark          |
+| FLL       | Fort Lauderdale–Hollywood International Airport  | Fort Lauderdale |
+| IAD       | Washington Dulles International Airport          | Dulles          |
+| IAH       | George Bush Intercontinental Airport             | Houston         |
+| JFK       | John F. Kennedy International Airport            | New York        |
+| LAS       | McCarran International Airport                   | Las Vegas       |
+| LAX       | Los Angeles International Airport                | Los Angeles     |
+| MCO       | Orlando International Airport                    | Orlando         |
+| MIA       | Miami International Airport                      | Miami           |
+| ORD       | O'Hare International Airport                     | Chicago         |
+| PHL       | Philadelphia International Airport               | Philadelphia    |
+| SEA       | Seattle-Tacoma International Airport             | Seattle         |
+| SFO       | San Francisco International Airport              | San Francisco   |
