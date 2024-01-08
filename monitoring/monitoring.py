@@ -67,7 +67,7 @@ batch_data = torch.tensor(batch_data, dtype=torch.float32)
 
 preds = model(batch_data)
 
-window_length = 15
+window_length = 5
 latest_preds = preds[-window_length:]
 latest_preds = latest_preds.detach().numpy()
 latest_preds = latest_preds.ravel()
@@ -85,7 +85,7 @@ latest_label = float(latest_labels[-1])
 print("Delay actual: " + str(latest_label))
 
 loss = mean_squared_error(latest_labels, latest_preds)
-print("Running MSE (n = 15): " + str(loss))
+print("Running MSE (n = 5): " + str(loss))
 
 print("Latest predictions:")
 print(latest_preds)
