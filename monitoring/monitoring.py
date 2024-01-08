@@ -73,6 +73,7 @@ latest_preds = latest_preds.detach().numpy()
 latest_preds.ravel()
 latest_pred = float(latest_preds[-1])
 
+
 print("Delay_predicted: " + str(latest_pred))
 
 df = feature_group.read()
@@ -81,13 +82,15 @@ latest_labels = df[-window_length:]["dep_delay_new"]
 latest_labels = latest_labels.to_numpy()
 latest_label = float(latest_labels[-1])
 
-print(latest_labels)
-print("Delay_actual: " + str(latest_label))
-
+print("Delay actual: " + str(latest_label))
 
 loss = mean_squared_error(latest_labels, latest_preds)
 print("Running MSE (n = 15): " + str(loss))
 
+print("Latest predictions:")
+print(latest_preds)
+print("Latest labels:")
+print(latest_labels)
 
 # %%
 monitor_fg = fs.get_or_create_feature_group(
