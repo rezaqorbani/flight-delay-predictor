@@ -103,7 +103,7 @@ data = {
     "datetime": [now],
     "prediction": [latest_pred],
     "label": [latest_label],
-    "mse (15 most recent rows)": [loss],
+    "mse": [loss],
 }
 
 monitor_df = pd.DataFrame(data)
