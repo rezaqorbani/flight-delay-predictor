@@ -70,7 +70,7 @@ preds = model(batch_data)
 window_length = 15
 latest_preds = preds[-window_length:]
 latest_preds = latest_preds.detach().numpy()
-latest_preds.ravel()
+latest_preds = latest_preds.ravel()
 latest_pred = float(latest_preds[-1])
 
 
@@ -122,7 +122,4 @@ history_df = pd.concat([history_df, monitor_df])
 df_recent = history_df.tail(5)
 dfi.export(df_recent, "./recent_delay_performance.png", table_conversion="matplotlib")
 dataset_api.upload("./recent_delay_performance.png", "Resources/images", overwrite=True)
-
-
-
 
